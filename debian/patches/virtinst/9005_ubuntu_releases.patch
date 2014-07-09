@@ -1,0 +1,24 @@
+Description: Update list of Ubuntu releases
+Author: Marc Deslauriers <marc.deslauriers@canonical.com>
+Forwarded: not yet
+Updated: 2014-06-20
+
+Index: virt-manager-1.0.1/virtinst/osdict.py
+===================================================================
+--- virt-manager-1.0.1.orig/virtinst/osdict.py	2014-07-04 08:54:42.182055609 -0400
++++ virt-manager-1.0.1/virtinst/osdict.py	2014-07-04 08:55:04.650055736 -0400
+@@ -290,9 +290,11 @@
+ _add_var("ubuntunatty", "Ubuntu 11.04 (Natty Narwhal)", parent="ubuntumaverick")
+ _add_var("ubuntuoneiric", "Ubuntu 11.10 (Oneiric Ocelot)", parent="ubuntunatty")
+ _add_var("ubuntuprecise", "Ubuntu 12.04 LTS (Precise Pangolin)", supported=True, parent="ubuntuoneiric")
+-_add_var("ubuntuquantal", "Ubuntu 12.10 (Quantal Quetzal)", parent="ubuntuprecise")
+-_add_var("ubunturaring", "Ubuntu 13.04 (Raring Ringtail)", videomodel="vmvga", parent="ubuntuquantal")
+-_add_var("ubuntusaucy", "Ubuntu 13.10 (Saucy Salamander) (or later)", parent="ubunturaring")
++_add_var("ubuntuquantal", "Ubuntu 12.10 (Quantal Quetzal)", supported=False, parent="ubuntuprecise")
++_add_var("ubunturaring", "Ubuntu 13.04 (Raring Ringtail)", parent="ubuntuquantal")
++_add_var("ubuntusaucy", "Ubuntu 13.10 (Saucy Salamander)",  parent="ubunturaring")
++_add_var("ubuntutrusty", "Ubuntu 14.04 LTS (Trusty Tahr)", supported=True, parent="ubuntusaucy")
++_add_var("ubuntuutopic", "Ubuntu 14.10 (Utopic Unicorn) (or later)", parent="ubuntutrusty")
+ 
+ _add_var("generic24", "Generic 2.4.x kernel", parent="linux")
+ _add_var("generic26", "Generic 2.6.x kernel", parent="generic24")

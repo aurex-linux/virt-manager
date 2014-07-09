@@ -1,0 +1,19 @@
+From d17cf4a22352659bc22e012286380b6481faad89 Mon Sep 17 00:00:00 2001
+From: Cole Robinson <crobinso@redhat.com>
+Date: Sat, 31 May 2014 19:40:18 -0400
+Subject: console: vnc: Don't force keyboard grab before widget is realized
+
+Causes gtk warnings on the console, and the code was mistaken anyways
+
+Index: virt-manager-1.0.1/virtManager/console.py
+===================================================================
+--- virt-manager-1.0.1.orig/virtManager/console.py	2014-07-09 08:32:24.079956507 -0400
++++ virt-manager-1.0.1/virtManager/console.py	2014-07-09 08:32:24.075956507 -0400
+@@ -469,7 +469,6 @@
+ 
+     def set_grab_keyboard(self):
+         self.display.set_keyboard_grab(self.config.get_grab_keyboard())
+-        self.display.force_grab(self.config.get_grab_keyboard())
+ 
+     def _desktop_resize(self, src_ignore, w, h):
+         self.desktop_resolution = (w, h)

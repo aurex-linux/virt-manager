@@ -1,0 +1,17 @@
+virtinst/fix-path-to-hvmloader.patch
+virtinst/Fix-patch-to-pygrub.patch
+virtinst/9004_ubuntu_fix_tree_support.patch
+virtinst/9005_ubuntu_releases.patch
+virtinst/9006_fix_path_to_qemu-dm.patch
+more_helpful_error_message.patch
+use_ubuntu_package_names.patch
+uefi_support.patch
+leave-mnemonics-alone-on-focus-change.patch
+mark-libvirt-lxc.patch
+add_qemu_binaries.patch
+fix_changing_graphics_type.patch
+hook_into_domain_balloon_event.patch
+fix_showing_vcpus.patch
+fix_whitespace_in_storage_name.patch
+dont-force-keyboard-grabs.patch
+prevent-access-to-deleted-objects.patch

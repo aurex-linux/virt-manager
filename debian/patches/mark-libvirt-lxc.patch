@@ -1,0 +1,31 @@
+Description: Clearly mark the LXC connections as being libvirt-lxc, to
+ avoid confusion due to differing features and configurations.
+Author: Serge Hallyn <serge.hallyn@ubuntu.com>
+Updated: 2014-06-20
+
+Index: virt-manager-1.0.1/virtManager/connect.py
+===================================================================
+--- virt-manager-1.0.1.orig/virtManager/connect.py	2014-02-18 17:43:05.000000000 -0500
++++ virt-manager-1.0.1/virtManager/connect.py	2014-06-20 13:21:16.475713709 -0400
+@@ -153,7 +153,7 @@
+         model = Gtk.ListStore(str)
+         model.append(["QEMU/KVM"])
+         model.append(["Xen"])
+-        model.append(["LXC (Linux Containers)"])
++        model.append(["Libvirt-LXC (Linux Containers)"])
+         model.append(["QEMU/KVM user session"])
+         combo.set_model(model)
+         uiutil.set_combo_text_column(combo, 0)
+Index: virt-manager-1.0.1/virtManager/connection.py
+===================================================================
+--- virt-manager-1.0.1.orig/virtManager/connection.py	2014-03-22 18:13:52.000000000 -0400
++++ virt-manager-1.0.1/virtManager/connection.py	2014-06-20 13:20:10.519711942 -0400
+@@ -423,7 +423,7 @@
+             "esx"       : "ESX",
+             "gsx"       : "GSX",
+             "libxl"     : "libxl",
+-            "lxc"       : "LXC",
++            "lxc"       : "Libvirt-LXC",
+             "openvz"    : "OpenVZ",
+             "phyp"      : "phyp",
+             "qemu"      : "QEMU",

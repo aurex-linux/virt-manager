@@ -1,0 +1,50 @@
+From f4365b669acc36bdc61c57d793894305dcb9059a Mon Sep 17 00:00:00 2001
+From: Giuseppe Scrivano <gscrivan@redhat.com>
+Date: Tue, 1 Jul 2014 15:01:58 +0200
+Subject: console: prevent access to deleted objects
+
+last commits revealed that some objects can still be accessed by
+registered callbacks after the console is closed.  Unregister these
+callbacks.
+
+Signed-off-by: Giuseppe Scrivano <gscrivan@redhat.com>
+
+Index: virt-manager-1.0.1/virtManager/console.py
+===================================================================
+--- virt-manager-1.0.1.orig/virtManager/console.py	2014-07-09 08:32:40.303956256 -0400
++++ virt-manager-1.0.1/virtManager/console.py	2014-07-09 08:32:40.299956256 -0400
+@@ -575,6 +575,7 @@
+         self.display = None
+         self.audio = None
+         self.main_channel = None
++        self._main_channel_hids = []
+         self.display_channel = None
+         self.usbdev_manager = None
+ 
+@@ -639,6 +640,11 @@
+             self.display.destroy()
+         self.display = None
+         self.display_channel = None
++
++        for i in self._main_channel_hids:
++            self.main_channel.handler_disconnect(i)
++        self._main_channel_hids = []
++
+         self.main_channel = None
+         self.usbdev_manager = None
+ 
+@@ -685,10 +691,12 @@
+             if self.console.tunnels:
+                 self.console.tunnels.unlock()
+             self.main_channel = channel
+-            self.main_channel.connect_after("channel-event",
++            hid = self.main_channel.connect_after("channel-event",
+                 self._main_channel_event_cb)
+-            self.main_channel.connect_after("notify::agent-connected",
++            self._main_channel_hids.append(hid)
++            hid = self.main_channel.connect_after("notify::agent-connected",
+                 self._agent_connected_cb)
++            self._main_channel_hids.append(hid)
+ 
+         elif (type(channel) == SpiceClientGLib.DisplayChannel and
+             not self.display):

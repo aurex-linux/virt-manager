@@ -1,0 +1,18 @@
+Description: Suggest installing the packages that are actually available in Ubuntu.
+Author: Marc Deslauriers <marc.deslauriers@ubuntu.com>
+Forwarded: no, Ubuntu-specific
+Updated: 2014-02-17
+
+Index: virt-manager-1.0.0/virtManager/engine.py
+===================================================================
+--- virt-manager-1.0.0.orig/virtManager/engine.py	2014-02-17 09:33:34.885271589 -0500
++++ virt-manager-1.0.0/virtManager/engine.py	2014-02-17 09:34:59.717272964 -0500
+@@ -183,7 +183,7 @@
+         # Manager fail message
+         msg = _("Could not detect a default hypervisor. Make\n"
+                 "sure the appropriate virtualization packages\n"
+-                "are installed (kvm, qemu, libvirt, etc.), and\n"
++                "are installed (qemu-system, libvirt-bin), and\n"
+                 "that libvirtd is running.\n\n"
+                 "A hypervisor connection can be manually\n"
+                 "added via File->Add Connection")
