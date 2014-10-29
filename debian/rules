@@ -11,4 +11,4 @@ override_dh_auto_configure:
 
 override_dh_python2:
 	dh_python2 -O--buildsystem=python_distutils
-	dh_python2 -p virtinst usr/share/virt-manager
+	dh_python2 -p virtinst-ng usr/share/virt-manager

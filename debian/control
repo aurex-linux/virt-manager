@@ -29,7 +29,7 @@ Depends: ${misc:Depends}, ${python:Depends},
  gir1.2-gtk-vnc-2.0,
  gir1.2-spice-client-gtk-3.0,
  gir1.2-vte-2.90,
- virtinst (>= ${binary:Version}),
+ virtinst-ng (>= ${binary:Version}),
 Recommends: libvirt-bin (>= 0.4.6), gnome-icon-theme,
  python-spice-client-gtk
 Suggests: virt-viewer, ssh-askpass, gnome-keyring, python-gnomekeyring,
@@ -47,11 +47,15 @@ Description: desktop application for managing virtual machines
  .
  NOTE: the GUI is still considered experimental.
 
-Package: virtinst
+Package: virtinst-ng
 Architecture: all
 Depends: ${python:Depends}, ${shlibs:Depends}, ${misc:Depends}, python-libvirt (>= 0.4.6),
  python-libxml2, python-urlgrabber
 Recommends: virt-viewer, qemu
+Conflicts: virtinst
+Replaces: virtinst
+Provides: virtinst
+Breaks: virt-manager (<1:1.0.1-0ubuntu2)
 Description: Programs to create and clone virtual machines
  Virtinst is a set of commandline tools to create virtual machines using
  libvirt:
