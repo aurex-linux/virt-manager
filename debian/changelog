@@ -1,3 +1,11 @@
+virt-manager (1:1.0.1-0ubuntu2i~aurex1) trusty; urgency=medium
+
+  * Rebuild for aurex 14.04 trusty.
+  * This is an experimental backport, and virt-manager binary has been renamed
+    to 'virt-manager-ng', so trusty version is still instalable
+
+ -- Luis Antonio Garcia Gisbert <luisgg@gmail.com>  Wed, 29 Oct 2014 02:16:21 +0100
+
 virt-manager (1:1.0.1-0ubuntu2) utopic; urgency=medium
 
   * debian/patches/dont-force-keyboard-grabs.patch: don't force keyboard

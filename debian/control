@@ -14,7 +14,7 @@ Build-Depends: debhelper (>= 9), python-all,
  libglib2.0-bin,
  lsb-release
 
-Package: virt-manager
+Package: virt-manager-ng
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends},
  python-gi,
@@ -34,6 +34,9 @@ Recommends: libvirt-bin (>= 0.4.6), gnome-icon-theme,
  python-spice-client-gtk
 Suggests: virt-viewer, ssh-askpass, gnome-keyring, python-gnomekeyring,
  python-guestfs
+Conflicts: virt-manager
+Provides: virt-manager
+Replaces: virt-manager
 Description: desktop application for managing virtual machines
  It presents a summary view of running domains and their live performance &
  resource utilization statistics. A detailed view presents graphs showing
