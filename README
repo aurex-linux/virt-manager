@@ -1,0 +1,49 @@
+  Virtual Machine Manager
+  =======================
+
+This application provides a graphical tool for managing virtual machines
+via the libvirt library.
+
+The front end of the application uses the GTK / Glade libraries for
+all user interaction components. The back end uses libvirt for managing
+Qemu/KVM and Xen virtual machines, as well as LXC containers. The UI is
+primarily tested with KVM, but is intended to be reasonably portable to any
+virtualization backend libvirt supports.
+
+
+  Pre-requisite software
+  ======================
+
+virt-manager was ported to GTK3 at the beginning of 2013. Older GTK3
+or pygobject3 versions likely will not work for running virt-manager.
+
+Earliest tested versions of major components:
+
+  python >= 2.6
+  gtk3 >= 3.6
+  libvirt-python >= 0.4.0
+  pygobject3 >= 3.4
+
+A more detailed dependency list can be found in virt-manager.spec.in.
+
+
+  Contact
+  =======
+
+All comments / suggestions / patches should be directed to the virt-tools-list
+mailing list:
+
+  http://www.redhat.com/mailman/listinfo/virt-tools-list
+
+For IRC we use #virt on OFTC.
+
+For bug reporting info, see:
+
+  http://virt-manager.org/page/BugReporting
+
+There are further project details on the website:
+
+  http://virt-manager.org/
+
+See the HACKING file for info about submitting patches or contributing
+translations.

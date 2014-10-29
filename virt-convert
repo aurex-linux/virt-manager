@@ -1,0 +1,131 @@
+#!/usr/bin/python2 -tt
+#
+# Copyright 2008, 2013, 2014  Red Hat, Inc.
+# Joey Boggs <jboggs@redhat.com>
+# Cole Robinson <crobinso@redhat.com>
+#
+# Copyright 2008 Sun Microsystems, Inc.  All rights reserved.
+# Use is subject to license terms.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
+
+import sys
+
+from virtinst import cli
+from virtinst.cli import fail, print_stderr, print_stdout
+
+from virtconv import VirtConverter
+
+# Example appliances:
+#
+# OVF/OVA:
+#   http://virtualboxes.org/tag/ova/
+# VMX, but they are all multipart which is current unsupported
+#   http://www.thoughtpolice.co.uk/vmware/
+# Minix VMX:
+#   http://download.minix3.org/iso/minix3_1_2a_vmware.zip
+
+
+#####################
+# Argument handling #
+#####################
+
+def parse_args():
+    desc = _(
+"Convert an OVF or VMX appliance to native libvirt XML, and run "
+"the guest.\nThe VM contents are not altered. Disk images are "
+"copied to the hypervisor\ndefault storage location.\n\n"
+"Examples:\n"
+"  virt-convert fedora18.ova\n"
+"  virt-convert centos6.zip --disk-format qcow2"
+)
+    parser = cli.setupParser(
+        "%(prog)s inputconfig [options]", desc)
+
+    parser.add_argument("input", metavar="inputconfig", nargs=1,
+        help=_("Conversion input. Can be a ovf/vmx file, a directory "
+               "containing a config and disk images, or a zip/ova/7z/etc "
+               "archive."))
+    cli.add_connect_option(parser)
+
+    cong = parser.add_argument_group("Conversion Options")
+    cong.add_argument("-i", "--input-format",
+                    help=_("Force the input format. 'vmx' or 'ovf'"))
+    cong.add_argument("-D", "--disk-format", default='raw',
+                    help=_("Output disk format. default is 'raw'. "
+                           "Disable conversion with 'none'"))
+    cong.add_argument("--destination", default=None,
+                    help=_("Destination directory the disk images should be "
+                           "converted/copied to. Defaults to the default "
+                           "libvirt directory."))
+
+    misc = parser.add_argument_group("Miscellaneous Options")
+    cli.add_misc_options(misc, dryrun=True, printxml=True, noautoconsole=True)
+
+    options = parser.parse_args()
+    options.input = options.input[0]
+
+    return options
+
+
+#######################
+# Functional handlers #
+#######################
+
+def main(conn=None):
+    cli.earlyLogging()
+    options = parse_args()
+    cli.setupLogging("virt-convert", options.debug, options.quiet)
+
+    if conn is None:
+        conn = cli.getConnection(options.connect)
+    if options.xmlonly:
+        options.dry = True
+        options.quiet = True
+
+    conscb = options.autoconsole and cli.show_console_for_guest or None
+
+    converter = VirtConverter(conn, options.input,
+        input_name=options.input_format, print_cb=print_stdout)
+    try:
+        converter.convert_disks(options.disk_format or "none",
+            destdir=options.destination, dry=options.dry)
+
+        guest = converter.get_guest()
+
+        if options.xmlonly:
+            print_stdout(guest.start_install(return_xml=True)[1],
+                do_force=True)
+        elif not options.dry:
+            print_stdout(_("Creating guest '%s'.") % guest.name)
+            guest.start_install()
+            cli.connect_console(guest, conscb, True)
+    except:
+        converter.cleanup()
+        raise
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except SystemExit, sys_e:
+        sys.exit(sys_e.code)
+    except KeyboardInterrupt:
+        print_stderr(_("Aborted at user request"))
+    except Exception, main_e:
+        fail(main_e)

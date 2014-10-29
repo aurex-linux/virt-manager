@@ -1,0 +1,284 @@
+#!/usr/bin/python2 -tt
+#
+# Copyright (C) 2006, 2014 Red Hat, Inc.
+# Copyright (C) 2006 Daniel P. Berrange <berrange@redhat.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
+#
+
+import argparse
+import logging
+import os
+import signal
+import sys
+import traceback
+
+# pylint: disable=E0611
+from gi.repository import GObject
+from gi.repository import LibvirtGLib
+# pylint: enable=E0611
+
+from virtinst import util as util
+from virtinst import cli as virtinstcli
+from virtcli import cliutils, cliconfig
+
+
+try:
+    # Avoid a deprecation warning about threads_init
+    import gi
+    gi.check_version("3.9.1")
+except (ValueError, AttributeError):
+    GObject.threads_init()
+
+
+def _show_startup_error(msg, details):
+    logging.debug("Error starting virt-manager: %s\n%s", msg, details,
+                  exc_info=True)
+    from virtManager.error import vmmErrorDialog
+    err = vmmErrorDialog()
+    title = _("Error starting Virtual Machine Manager")
+    err.show_err(title + ": " + msg,
+                 details=details,
+                 title=title,
+                 modal=True,
+                 debug=False)
+
+
+def drop_tty():
+    # We fork and setsid so that we drop the controlling
+    # tty. This prevents libvirt's SSH tunnels from prompting
+    # for user input if SSH keys/agent aren't configured.
+    if os.fork() != 0:
+        os._exit(0)  # pylint: disable=W0212
+
+    os.setsid()
+
+
+def drop_stdio():
+    # This is part of the fork process described in drop_tty()
+    for fd in range(0, 2):
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+
+    os.open(os.devnull, os.O_RDWR)
+    os.dup2(0, 1)
+    os.dup2(0, 2)
+
+
+def parse_commandline():
+    epilog = ("Also accepts standard GTK arguments like --g-fatal-warnings")
+    parser = argparse.ArgumentParser(usage="virt-manager [options]",
+                                     epilog=epilog)
+    parser.add_argument('--version', action='version',
+                        version=cliconfig.__version__)
+    parser.set_defaults(uuid=None)
+
+    # Trace every libvirt API call to debug output
+    parser.add_argument("--trace-libvirt", dest="tracelibvirt",
+        help=argparse.SUPPRESS, action="store_true")
+
+    # Don't load any connections on startup to test first run
+    # PackageKit integration
+    parser.add_argument("--test-first-run", dest="testfirstrun",
+        help=argparse.SUPPRESS, action="store_true")
+
+    parser.add_argument("-c", "--connect", dest="uri",
+        help="Connect to hypervisor at URI", metavar="URI")
+    parser.add_argument("--debug", action="store_true", dest="debug",
+        help="Print debug output to stdout (implies --no-fork)",
+        default=False)
+    parser.add_argument("--no-fork", action="store_true", dest="nofork",
+        help="Don't fork into background on startup")
+    parser.add_argument("--no-conn-autostart", action="store_true",
+        dest="no_conn_auto", help="Do not autostart connections")
+    parser.add_argument("--spice-disable-auto-usbredir", action="store_true",
+        dest="usbredir", help="Disable Auto USB redirection support")
+
+    parser.add_argument("--show-domain-creator", action="store_true",
+        help="Show 'New VM' wizard")
+    parser.add_argument("--show-domain-editor", metavar="NAME|ID|UUID",
+        help="Show domain details window")
+    parser.add_argument("--show-domain-performance", metavar="NAME|ID|UUID",
+        help="Show domain performance window")
+    parser.add_argument("--show-domain-console", metavar="NAME|ID|UUID",
+        help="Show domain graphical console window")
+    parser.add_argument("--show-host-summary", action="store_true",
+        help="Show connection details window")
+
+    return parser.parse_known_args()
+
+
+def launch_specific_window(engine, show, uri, uuid):
+    if not show:
+        return
+
+    logging.debug("Launching requested window '%s'", show)
+    if show == 'creator':
+        engine.show_domain_creator(uri)
+    elif show == 'editor':
+        engine.show_domain_editor(uri, uuid)
+    elif show == 'performance':
+        engine.show_domain_performance(uri, uuid)
+    elif show == 'console':
+        engine.show_domain_console(uri, uuid)
+    elif show == 'summary':
+        engine.show_host_summary(uri)
+
+
+def main():
+    cliutils.setup_i18n()
+    (options, leftovers) = parse_commandline()
+
+    virtinstcli.setupLogging("virt-manager", options.debug, False, False)
+
+    import virtManager
+    logging.debug("virt-manager version: %s", cliconfig.__version__)
+    logging.debug("virtManager import: %s", str(virtManager))
+
+    if options.tracelibvirt:
+        logging.debug("Libvirt tracing requested")
+        import virtManager.module_trace
+        import libvirt
+        virtManager.module_trace.wrap_module(libvirt)
+
+    # Now we've got basic environment up & running we can fork
+    do_drop_stdio = False
+    if not options.nofork and not options.debug:
+        drop_tty()
+        do_drop_stdio = True
+
+        # Ignore SIGHUP, otherwise a serial console closing drops the whole app
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+
+    # The never ending fork+gconf/gsettings problems now require
+    # us to import Gtk _after_ the fork. This creates a funny race,
+    # since we need to parse the command line arguments to know if
+    # we need to fork, but need to import Gtk before cli processing
+    # so it can handle --g-fatal-args. We strip out our flags first
+    # and pass the left overs to gtk
+    origargv = sys.argv
+    try:
+        sys.argv = origargv[:1] + leftovers[:]
+        from gi.repository import Gtk  # pylint: disable=E0611
+        leftovers = sys.argv[1:]
+
+        # This will error if Gtk wasn't correctly initialized
+        Gtk.Window()
+
+        globals()["Gtk"] = Gtk
+        import virtManager.config
+    except Exception, e:
+        # Don't just let the exception raise here. abrt reports bugs
+        # when users mess up su/sudo and DISPLAY isn't set. Printing
+        # it avoids the issue
+        display = os.environ.get("DISPLAY", "")
+        msg = str(e)
+        if display:
+            msg += ": Could not open display: %s" % display
+        logging.debug("".join(traceback.format_exc()))
+        print msg
+        return 1
+    finally:
+        sys.argv = origargv
+
+    # Do this after the Gtk import so the user has a chance of seeing any error
+    if do_drop_stdio:
+        drop_stdio()
+
+    if leftovers:
+        raise RuntimeError("Unhandled command line options '%s'" % leftovers)
+
+    logging.debug("GTK version: %d.%d.%d",
+                  Gtk.get_major_version(),
+                  Gtk.get_minor_version(),
+                  Gtk.get_micro_version())
+
+    config = virtManager.config.vmmConfig(
+        "virt-manager", cliconfig, options.testfirstrun)
+
+    if not util.local_libvirt_version() >= 6000:
+        # We need this version for threaded virConnect access
+        _show_startup_error(
+                _("virt-manager requires libvirt 0.6.0 or later."), "")
+        return
+
+
+    if options.usbredir and config.get_auto_redirection():
+        config.cli_usbredir = False
+
+    # Add our icon dir to icon theme
+    icon_theme = Gtk.IconTheme.get_default()
+    icon_theme.prepend_search_path(cliconfig.icon_dir)
+
+    from virtManager.engine import vmmEngine
+
+    Gtk.Window.set_default_icon_name("virt-manager")
+
+    show = None
+    if options.show_domain_creator:
+        show = "creator"
+    elif options.show_domain_editor:
+        show = "editor"
+    elif options.show_domain_performance:
+        show = "performance"
+    elif options.show_domain_console:
+        show = "console"
+    elif options.show_host_summary:
+        show = "summary"
+
+    if show and options.uri is None:
+        raise RuntimeError("can't use --show-* options without --connect")
+    if show:
+        options.uuid = (options.uuid or options.show_domain_creator or
+                        options.show_domain_editor or
+                        options.show_domain_performance or
+                        options.show_domain_console or
+                        options.show_host_summary)
+
+    # Hook libvirt events into glib main loop
+    LibvirtGLib.init(None)
+    LibvirtGLib.event_register()
+
+    engine = vmmEngine()
+    engine.skip_autostart = options.no_conn_auto
+    engine.uri_at_startup = options.uri
+
+    if show:
+        def cb(conn):
+            ignore = conn
+            launch_specific_window(engine, show, options.uri, options.uuid)
+            return True
+        engine.uri_cb = cb
+        engine.show_manager_window = False
+        engine.skip_autostart = True
+
+    # Finally start the app for real
+    engine.application.run(None)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.debug("Received KeyboardInterrupt. Exiting application.")
+    except SystemExit:
+        raise
+    except Exception, run_e:
+        if "Gtk" not in globals():
+            raise
+        _show_startup_error(str(run_e), "".join(traceback.format_exc()))

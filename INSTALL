@@ -1,0 +1,21 @@
+  Basic Install
+  =============
+
+For starters, if you just want to run virt-manager/virt-install to test out
+changes, it can be done from the source directory:
+
+    ./virt-manager
+
+To install the software into /usr/local (usually), you can do:
+
+    python setup.py install
+
+To build an RPM, you can run:
+
+    python setup.py rpm
+
+setup.py generally has all the build and install commands, for more info see:
+
+    python setup.py --help-commands
+    python setup.py install --help
+    http://docs.python.org/inst/standard-install.html
