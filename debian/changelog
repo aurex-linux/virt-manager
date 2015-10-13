@@ -1,3 +1,9 @@
+virt-manager (1:1.0.1-0ubuntu2~aurex2) trusty; urgency=medium
+
+  * Dummy upgrade
+
+ -- Luis Antonio Garcia Gisbert <luisgg@gmail.com>  Tue, 13 Oct 2015 10:53:43 +0200
+
 virt-manager (1:1.0.1-0ubuntu2~aurex1) trusty; urgency=medium
 
   * Rebuild for aurex 14.04 trusty.
